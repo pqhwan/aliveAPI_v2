@@ -9,15 +9,26 @@
 import Foundation
 import Alamofire
 
+class fieldName{
+    var pholder:String = ""
+    var scure: Bool = false
+    init(placeholder: String, secure: Bool){
+        pholder = placeholder
+        scure = secure
+    }
+}
 class HTTPEndpoint {
+
+    
     let title: String
     let message: String?
     let method: Alamofire.Method // get or post
     let route: String // without base url
-    let textFields: [String:Bool]? // placeholdername : secure or not
+    let textFields: [fieldName]? // placeholdername : secure or not
     let completionHandler: ( ( message: String?, package: NSDictionary? )-> Void )?
     
-    init(title:String!, message:String?, method:Alamofire.Method!, route:String!, textFields:[String:Bool]?,
+    
+    init(title:String!, message:String?, method:Alamofire.Method!, route:String!, textFields:[fieldName]?,
         completionHandler: ((message: String?, package: NSDictionary? ) -> Void )?) {
         
         self.title = title

@@ -12,21 +12,34 @@ import Alamofire
 class MainViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
     var endpoints = [HTTPEndpoint]()
+    var accessToken: String?
     let cellReuseIdentifier = "apiEndpointCell"
     let baseURL = "http://localhost:8080"
+   
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         self.endpoints.append(HTTPEndpoint(title: "Login", message: nil, method: Alamofire.Method.POST,
             route: "/login",
-            textFields: ["username":false, "password":true], completionHandler: nil))
+            textFields: [
+                fieldName(placeholder: "username", secure: false),
+                fieldName(placeholder: "password", secure: true)
+            ],
+            completionHandler: nil))
         self.endpoints.append(HTTPEndpoint(title: "Signup", message: nil, method: Alamofire.Method.POST,
             route: "/signup",
-            textFields: ["username":false, "password":true], completionHandler: nil))
+            textFields: [
+                fieldName(placeholder: "username", secure: false),
+                fieldName(placeholder: "password", secure: true)
+            ],
+            completionHandler: nil))
         self.endpoints.append(HTTPEndpoint(title: "Create room", message: nil, method: Alamofire.Method.POST,
             route: "/room",
-            textFields: ["room_name":false], completionHandler: nil))
+            textFields: [
+                fieldName(placeholder: "roomname", secure: false)
+            ], completionHandler: nil))
+        
         // Do any additional setup after loading the view, typically from a nib.
     }
 
@@ -64,17 +77,13 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         alert.addAction(cancelAction)
        
         // ADD GO BUTTON
-        let goAction: UIAlertAction! = UIAlertAction(title: "go", style: UIAlertActionStyle.Default , handler: {
-            (action) in
-            
+        let goAction: UIAlertAction! = UIAlertAction(title: "go", style: UIAlertActionStyle.Default , handler: { (action) in
             var params = [String : String]()
            
             // RETRIEVE INPUTS FROM TEXTFIELDS
-            if let t = alert.textFields as [UITextField]? {
-                for field in t {
-                    if let f = field as UITextField? {
-                        params[f.placeholder!] = f.text;
-                    }
+            for field in alert.textFields as [UITextField] {
+                if let f = field as UITextField? {
+                    params[f.placeholder!] = f.text;
                 }
             }
             
@@ -82,33 +91,34 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
             
             // MAKE REQUEST
             let urlString = self.baseURL.stringByAppendingString(endpoint.route)
-            Alamofire.request(endpoint.method, urlString, parameters: params,
-                encoding: .JSON).responseJSON({
-                (request, response, json, err) -> Void in
-                println(response!)
-                println(json)
+            Alamofire.request(endpoint.method, urlString, parameters: params, encoding: .JSON)
+                .responseJSON({ (request, response, json, err) -> Void in
                 if err != nil {
                     // system or network error
                     println("SYS ERROR")
                     println(err)
                 }
+                    
+                    
+                // TODO check success
+                // TODO call the given callback to unpack JSON results
+                //println(response!)
+                //println(json)
             })
                 
             tableView.deselectRowAtIndexPath(indexPath, animated: true)
         })
         alert.addAction(goAction)
-       
-        // ADD TEXT FIELDS
-        if let t = endpoint.textFields as [String:Bool]? {
-            for (placeHolder, secure) in t {
+        
+        for i in 0...(endpoint.textFields?.count as Int! - 1){
+            if let fieldname = endpoint.textFields?[i] {
                 alert.addTextFieldWithConfigurationHandler({ (textField) -> Void in
-                    textField.placeholder = placeHolder
-                    textField.secureTextEntry = secure
+                    textField.placeholder = fieldname.pholder
+                    textField.secureTextEntry = fieldname.scure
                 })
-                
             }
         }
-        
+       
         // present alert controller
         self.presentViewController(alert, animated: true, completion: {() in})
     }
