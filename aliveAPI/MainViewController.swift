@@ -8,6 +8,7 @@
 
 import UIKit
 import Alamofire
+import SwiftyJSON
 
 class MainViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
@@ -22,23 +23,65 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         
         self.endpoints.append(HTTPEndpoint(title: "Login", message: nil, method: Alamofire.Method.POST,
             route: "/login",
+            authenticate: false,
             textFields: [
-                fieldName(placeholder: "username", secure: false),
-                fieldName(placeholder: "password", secure: true)
+                fieldName(placeholder: "username", secure: false, route: false),
+                fieldName(placeholder: "password", secure: true, route: false)
             ],
+            encoding: .JSON,
             completionHandler: nil))
-        self.endpoints.append(HTTPEndpoint(title: "Signup", message: nil, method: Alamofire.Method.POST,
+        self.endpoints.append(HTTPEndpoint(title: "Signup", message: nil,
+            method: Alamofire.Method.POST,
             route: "/signup",
+            authenticate: false,
             textFields: [
-                fieldName(placeholder: "username", secure: false),
-                fieldName(placeholder: "password", secure: true)
+                fieldName(placeholder: "username", secure: false, route: false),
+                fieldName(placeholder: "password", secure: true, route: false)
             ],
+            encoding: .JSON,
             completionHandler: nil))
-        self.endpoints.append(HTTPEndpoint(title: "Create room", message: nil, method: Alamofire.Method.POST,
+        self.endpoints.append(HTTPEndpoint(title: "Create room", message: nil,
+            method: Alamofire.Method.POST,
             route: "/room",
+            authenticate: true,
             textFields: [
-                fieldName(placeholder: "roomname", secure: false)
-            ], completionHandler: nil))
+                fieldName(placeholder: "room_name", secure: false, route: false)
+            ],
+            encoding: .JSON,
+            completionHandler: nil))
+        
+        self.endpoints.append(HTTPEndpoint(title: "Search for rooms",
+            message: nil,
+            method: Alamofire.Method.GET,
+            route: "/search",
+            authenticate: false,
+            textFields: [
+                fieldName(placeholder: "query", secure: false, route: true)
+            ],
+            encoding: .URL,
+            completionHandler: nil))
+        
+        self.endpoints.append(HTTPEndpoint(title: "enter room",
+            message: nil,
+            method: Alamofire.Method.GET,
+            route: "/room",
+            authenticate: true,
+            textFields: [
+                fieldName(placeholder: "id", secure: false, route: true)
+            ],
+            encoding: .URL,
+            completionHandler: nil))
+        
+        self.endpoints.append(HTTPEndpoint(title: "get info on user",
+            message: nil,
+            method: Alamofire.Method.GET,
+            route: "/user",
+            authenticate: true,
+            textFields: [
+                fieldName(placeholder: "username", secure: false, route: true)
+            ],
+            encoding: .URL,
+            completionHandler: nil))
         
         // Do any additional setup after loading the view, typically from a nib.
     }
@@ -79,31 +122,55 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         // ADD GO BUTTON
         let goAction: UIAlertAction! = UIAlertAction(title: "go", style: UIAlertActionStyle.Default , handler: { (action) in
             var params = [String : String]()
-           
+            
+            var urlString = self.baseURL.stringByAppendingString(endpoint.route)
+            
             // RETRIEVE INPUTS FROM TEXTFIELDS
             for field in alert.textFields as [UITextField] {
                 if let f = field as UITextField? {
-                    params[f.placeholder!] = f.text;
+                    let fieldObj:fieldName! = endpoint.textFields?.filter{$0.placeholder == f.placeholder}.first
+                    if fieldObj.route == true {
+                        urlString = urlString.stringByAppendingString("/\(f.text)");
+                    } else {
+                        params[f.placeholder!] = f.text;
+                    }
                 }
             }
+           
+            // TODO temporary until we have a handler for /login and /signup
+            if endpoint.authenticate == true {
+                params["access_token"] = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6InBldGUiLCJ0aW1lc3RhbXAiOjE0MjQzNzUzMzg4OTl9.MDX0r2gm4rgjNjvFOesVmaH0B9dz58K2-x5fOLrCtzg"
+            }
+            
             
             println(params)
             
             // MAKE REQUEST
-            let urlString = self.baseURL.stringByAppendingString(endpoint.route)
-            Alamofire.request(endpoint.method, urlString, parameters: params, encoding: .JSON)
+            Alamofire.request(endpoint.method, urlString, parameters: params, encoding: endpoint.encoding)
                 .responseJSON({ (request, response, json, err) -> Void in
-                if err != nil {
-                    // system or network error
-                    println("SYS ERROR")
-                    println(err)
-                }
+                    if err != nil {
+                        // system or network error
+                        println("SYS ERROR")
+                        println(err)
+                        return
+                    }
+                  
+                    if let r = response as NSHTTPURLResponse!{
+                        if r.statusCode != 200 {
+                            println("SERVER RESPONDED WITH A \(r.statusCode)")
+                            return
+                        }
+                    }
                     
+                    let parsedJson = JSON(json!)
                     
-                // TODO check success
-                // TODO call the given callback to unpack JSON results
-                //println(response!)
-                //println(json)
+                    if parsedJson["success"] == true {
+                        // success: pass the package to the handler
+                        println(parsedJson["package"])
+                    } else if parsedJson["success"] == false {
+                        println()
+                        return
+                    }
             })
                 
             tableView.deselectRowAtIndexPath(indexPath, animated: true)
@@ -113,8 +180,8 @@ class MainViewController: UIViewController, UITableViewDataSource, UITableViewDe
         for i in 0...(endpoint.textFields?.count as Int! - 1){
             if let fieldname = endpoint.textFields?[i] {
                 alert.addTextFieldWithConfigurationHandler({ (textField) -> Void in
-                    textField.placeholder = fieldname.pholder
-                    textField.secureTextEntry = fieldname.scure
+                    textField.placeholder = fieldname.placeholder
+                    textField.secureTextEntry = fieldname.secure
                 })
             }
         }

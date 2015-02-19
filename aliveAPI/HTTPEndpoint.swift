@@ -10,38 +10,45 @@ import Foundation
 import Alamofire
 
 class fieldName{
-    var pholder:String = ""
-    var scure: Bool = false
-    init(placeholder: String, secure: Bool){
-        pholder = placeholder
-        scure = secure
+    var placeholder:String = ""
+    var secure: Bool = false
+    var route: Bool = true
+    init(placeholder: String, secure: Bool, route: Bool){
+        self.placeholder = placeholder
+        self.secure = secure
+        self.route = route
     }
 }
 class HTTPEndpoint {
 
     
+    let authenticate: Bool
     let title: String
     let message: String?
     let method: Alamofire.Method // get or post
     let route: String // without base url
     let textFields: [fieldName]? // placeholdername : secure or not
+    let encoding: ParameterEncoding!
     let completionHandler: ( ( message: String?, package: NSDictionary? )-> Void )?
     
     
-    init(title:String!, message:String?, method:Alamofire.Method!, route:String!, textFields:[fieldName]?,
+    init(title:String!, message:String?, method:Alamofire.Method!, route:String!, authenticate: Bool!,
+        textFields:[fieldName]?,
+        encoding: ParameterEncoding!,
         completionHandler: ((message: String?, package: NSDictionary? ) -> Void )?) {
-        
-        self.title = title
-        if let m = message {
-            self.message = message
-        }
-        self.method = method
-        self.route = route
-        if let t = textFields{
-            self.textFields = t
-        }
-        if let c = completionHandler {
-            self.completionHandler = c
-        }
+            self.title = title
+            if let m = message {
+                self.message = message
+            }
+            self.method = method
+            self.authenticate = authenticate
+            self.route = route
+            self.encoding = encoding
+            if let t = textFields{
+                self.textFields = t
+            }
+            if let c = completionHandler {
+                self.completionHandler = c
+            }
     }
 }
